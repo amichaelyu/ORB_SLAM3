@@ -106,7 +106,9 @@ public:
         const bool bUseViewer = true, 
         const string &load_atlas_path = std::string(),
         const string &save_atlas_path = std::string(),
-        const cv::Ptr<cv::aruco::Dictionary> aruco_dict=cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50),
+        // Tag-assisted monocular initialization (a fallback when two-view initialization fails): off by default.
+        // Pass a dictionary, e.g. cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50) for UMI's tag 13, to enable.
+        const cv::Ptr<cv::aruco::Dictionary> aruco_dict=cv::Ptr<cv::aruco::Dictionary>(),
         const int init_tag_id=13,
         const float init_tag_size=0.16
     );

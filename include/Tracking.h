@@ -306,7 +306,7 @@ protected:
     unsigned int mnLastKeyFrameId;
     unsigned int mnLastRelocFrameId;
     double mTimeStampLost;
-    double time_recently_lost;
+    double time_recently_lost;   // 0.2 s (stock 5 s): coasting on the IMU any longer corrupts maps with a cheap IMU
 
     unsigned int mnFirstFrameId;
     unsigned int mnInitialFrameId;
