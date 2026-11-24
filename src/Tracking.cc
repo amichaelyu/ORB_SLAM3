@@ -122,6 +122,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
         }
     }
     mbLoadedMap = pSys->isLoadingMap();
+    mbMapTimeAligned = false;
 }
 
 Tracking::~Tracking()
@@ -1668,15 +1669,31 @@ void Tracking::Track()
                         pKFcur->mPrevKF = pKFend;
                         pKFend->mNextKF = pKFcur;
 
-                        // update timestamps
-                        cout << "vpKFs.back()->mpImuPreintegrated" << vpKFs.back()->mpImuPreintegrated << endl;
-                        double dt = 1.0 / 59.97;
-                        if (vpKFs.back()->mpImuPreintegrated != nullptr){
-                            double dt = vpKFs.back()->mpImuPreintegrated->dT;
-                        }
-                        double t_offset = - vpKFs.back()->mTimeStamp - dt;
-                        for (auto kf : vpKFs) {
-                            kf->mTimeStamp += t_offset;
+                        // The new keyframe starts this recording's inertial chain. The IMU preintegrated since the
+                        // recording began does not connect it to the map's last keyframe (another recording, another
+                        // pose), so it carries none: the optimizers skip an inertial edge without preintegration.
+                        // UMI only got this when the first frame relocalized (no preintegration yet); a later
+                        // relocalization chained the whole recording's IMU to the map and the local inertial BA then
+                        // threw the keyframe (and tracking) away.
+                        pKFcur->mpImuPreintegrated = nullptr;
+                        pKFcur->SetNewBias(pKFend->GetImuBias());
+                        pKFcur->SetVelocity(Eigen::Vector3f::Zero());
+                        mCurrentFrame.SetNewBias(pKFend->GetImuBias());
+                        mpImuPreintegratedFromLastKF = new IMU::Preintegrated(pKFend->GetImuBias(),*mpImuCalib);
+                        mCurrentFrame.mpImuPreintegrated = mpImuPreintegratedFromLastKF;
+
+                        // Put the loaded map's keyframes just before this frame on the recording's clock, once: the
+                        // local mapper reads keyframe time differences (mTinit, culling). UMI assumed a clock starting
+                        // at 0 and shifted at every relocalization, which also moved this recording's own keyframes.
+                        if (!mbMapTimeAligned) {
+                            double dt = 1.0 / 59.97;
+                            if (pKFend->mpImuPreintegrated != nullptr && pKFend->mpImuPreintegrated->dT > 0)
+                                dt = pKFend->mpImuPreintegrated->dT;
+                            const double t_offset = mCurrentFrame.mTimeStamp - dt - pKFend->mTimeStamp;
+                            for (auto kf : vpKFs) {
+                                kf->mTimeStamp += t_offset;
+                            }
+                            mbMapTimeAligned = true;
                         }
 
                         cout << "pKFCur->mTimeStamp" << pKFcur->mTimeStamp << endl;

@@ -314,6 +314,7 @@ protected:
 
     bool mbCreatedMap;
     bool mbLoadedMap;
+    bool mbMapTimeAligned;   // the loaded map's keyframe times were moved onto this recording's clock
 
     //Motion Model
     bool mbVelocity{false};
