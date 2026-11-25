@@ -36,6 +36,10 @@
 namespace ORB_SLAM3
 {
 
+// Ids below these belong to the atlas loaded from file (0: nothing loaded). Read by Optimizer::LocalInertialBA.
+unsigned long gLoadedKFMaxId = 0, gLoadedMPMaxId = 0;
+
+
 Verbose::eLevel Verbose::th = Verbose::VERBOSITY_NORMAL;
 
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
@@ -135,6 +139,17 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
             cout << "Error to load the file, please try with other session file or vocabulary file" << endl;
             exit(-1);
         }
+
+        // A session that localizes into a loaded atlas keeps the loaded keyframes and map points fixed in its local
+        // bundle adjustment (Optimizer::LocalInertialBA), so the clip's own keyframes cannot deform the map.
+        for(Map* pM : mpAtlas->GetAllMaps())
+        {
+            for(KeyFrame* pKFl : pM->GetAllKeyFrames())
+                if(pKFl && pKFl->mnId+1>gLoadedKFMaxId) gLoadedKFMaxId = pKFl->mnId+1;
+            for(MapPoint* pMPl : pM->GetAllMapPoints())
+                if(pMPl && pMPl->mnId+1>gLoadedMPMaxId) gLoadedMPMaxId = pMPl->mnId+1;
+        }
+        cout << "Loaded atlas kept fixed: keyframes < " << gLoadedKFMaxId << ", map points < " << gLoadedMPMaxId << endl;
 
         // mpAtlas->CreateNewMap();
         // when loading a file from disk, we want to localize

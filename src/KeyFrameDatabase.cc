@@ -23,6 +23,8 @@
 #include "Thirdparty/DBoW2/DBoW2/BowVector.h"
 
 #include<mutex>
+#include<algorithm>
+#include<functional>
 
 using namespace std;
 
@@ -767,6 +769,25 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F, Map
     }
 
     int minCommonWords = maxCommonWords*0.8f;
+
+    // The two monocular-initialization keyframes are extracted with 5x the features, so they share the most words with
+    // any frame and the 0.8*max cut then drops every other keyframe (relocalization into a loaded atlas failed until
+    // a frame happened to share that many words with a normal keyframe). Always score the nRelocTop keyframes with the
+    // most common words; the normalized BoW score below ranks them fairly.
+    {
+        const size_t nRelocTop = 30;
+        vector<int> vWords;
+        vWords.reserve(lKFsSharingWords.size());
+        for(list<KeyFrame*>::iterator lit=lKFsSharingWords.begin(), lend= lKFsSharingWords.end(); lit!=lend; lit++)
+            vWords.push_back((*lit)->mnRelocWords);
+        if(vWords.size()>nRelocTop)
+        {
+            std::nth_element(vWords.begin(), vWords.begin()+nRelocTop-1, vWords.end(), std::greater<int>());
+            minCommonWords = std::min(minCommonWords, vWords[nRelocTop-1]-1);
+        }
+        else
+            minCommonWords = 0;
+    }
 
     list<pair<float,KeyFrame*> > lScoreAndMatch;
 

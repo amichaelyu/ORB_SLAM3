@@ -44,6 +44,9 @@
 
 namespace ORB_SLAM3
 {
+
+extern unsigned long gLoadedKFMaxId, gLoadedMPMaxId;   // System.cc: ids of the atlas loaded from file
+
 bool sortByVal(const pair<MapPoint*, int> &a, const pair<MapPoint*, int> &b)
 {
     return (a.second < b.second);
@@ -2532,22 +2535,22 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
 
         VertexPose * VP = new VertexPose(pKFi);
         VP->setId(pKFi->mnId);
-        VP->setFixed(false);
+        VP->setFixed(pKFi->mnId<gLoadedKFMaxId);
         optimizer.addVertex(VP);
 
         if(pKFi->bImu)
         {
             VertexVelocity* VV = new VertexVelocity(pKFi);
             VV->setId(maxKFid+3*(pKFi->mnId)+1);
-            VV->setFixed(false);
+            VV->setFixed(pKFi->mnId<gLoadedKFMaxId);
             optimizer.addVertex(VV);
             VertexGyroBias* VG = new VertexGyroBias(pKFi);
             VG->setId(maxKFid+3*(pKFi->mnId)+2);
-            VG->setFixed(false);
+            VG->setFixed(pKFi->mnId<gLoadedKFMaxId);
             optimizer.addVertex(VG);
             VertexAccBias* VA = new VertexAccBias(pKFi);
             VA->setId(maxKFid+3*(pKFi->mnId)+3);
-            VA->setFixed(false);
+            VA->setFixed(pKFi->mnId<gLoadedKFMaxId);
             optimizer.addVertex(VA);
         }
     }
@@ -2558,7 +2561,7 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
         KeyFrame* pKFi = *it;
         VertexPose * VP = new VertexPose(pKFi);
         VP->setId(pKFi->mnId);
-        VP->setFixed(false);
+        VP->setFixed(pKFi->mnId<gLoadedKFMaxId);
         optimizer.addVertex(VP);
     }
 
@@ -2717,6 +2720,8 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
 
         unsigned long id = pMP->mnId+iniMPid+1;
         vPoint->setId(id);
+        if(pMP->mnId<gLoadedMPMaxId)
+            vPoint->setFixed(true);
         vPoint->setMarginalized(true);
         optimizer.addVertex(vPoint);
         const map<KeyFrame*,tuple<int,int>> observations = pMP->GetObservations();
