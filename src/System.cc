@@ -604,6 +604,10 @@ void System::Shutdown()
         usleep(5000);
     }
 
+    // A pass that saves its atlas (a mapping pass) runs the inertial BAs its slow motion never triggered online.
+    if(!mStrSaveAtlasToFile.empty() && (mSensor==IMU_MONOCULAR || mSensor==IMU_STEREO || mSensor==IMU_RGBD))
+        mpLocalMapper->FinishInertialBA();
+
     if(!mStrSaveAtlasToFile.empty())
     {
         Verbose::PrintMess("Atlas saving to file " + mStrSaveAtlasToFile, Verbose::VERBOSITY_NORMAL);
