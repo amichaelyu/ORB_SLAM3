@@ -77,6 +77,11 @@ public:
     }
 
     bool IsInitializing();
+
+    // End of a mapping pass (System::Shutdown, before the atlas is saved, threads finished): run the inertial BAs the
+    // online schedule skipped. That schedule counts only keyframe time with > 5 cm of motion over the last two
+    // keyframe steps, so a slow pass can end without BA2. Returns true when it ran one.
+    bool FinishInertialBA();
     double GetCurrKFTime();
     KeyFrame* GetCurrKF();
 

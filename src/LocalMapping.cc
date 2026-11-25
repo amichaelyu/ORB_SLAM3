@@ -1440,6 +1440,26 @@ void LocalMapping::ScaleRefinement()
 
 
 
+bool LocalMapping::FinishInertialBA()
+{
+    if (!mbInertial || !mpCurrentKeyFrame || mpCurrentKeyFrame->isBad())
+        return false;
+    Map* pMap = mpCurrentKeyFrame->GetMap();
+    if (!pMap || pMap != mpAtlas->GetCurrentMap() || !pMap->isImuInitialized() || pMap->GetIniertialBA2())
+        return false;
+    if (!pMap->GetIniertialBA1())
+    {
+        cout << "end-of-pass VIBA 1 (online clock " << mTinit << " s)" << endl;
+        pMap->SetIniertialBA1();
+        InitializeIMU(1.f, 1e5, true);
+    }
+    cout << "end-of-pass VIBA 2 (online clock " << mTinit << " s, " << pMap->KeyFramesInMap() << " keyframes)" << endl;
+    pMap->SetIniertialBA2();
+    InitializeIMU(0.f, 0.f, true);
+    cout << "end end-of-pass VIBA 2" << endl;
+    return true;
+}
+
 bool LocalMapping::IsInitializing()
 {
     return bInitializing;
